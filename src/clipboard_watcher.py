@@ -9,36 +9,15 @@ import os
 import sys
 from typing import Any, List, Optional, Tuple
 
-# Asegurarse de que 'src' esté en el path de Python
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if os.path.basename(current_dir) == 'src':
-    sys.path.insert(0, os.path.dirname(current_dir))
-
-try:
-    from suffix_adder import add_suffix
-    from logger import logger
-except ImportError:
-    from src.suffix_adder import add_suffix
-    from src.logger import logger
+from suffix_adder import add_suffix
+from logger import logger
 
 
 class ClipboardWatcher:
-    """Clipboard watcher that modifies URLs based on rules.
-    This class uses a Windows message loop to listen for clipboard changes
-
-    Returns:
-        bool: True if the program should restart, False otherwise.
-    """
-
     BASE_CLASS_NAME = "ClipboardWatcher"
     CLASS_NAME = f"{BASE_CLASS_NAME}_{int(time.time())}_{os.getpid()}"
 
     def __init__(self, rules: List[Tuple[List[str], str]]):
-        """Initialize the clipboard watcher with rules.
-
-        Args:
-            rules (List[Tuple[List[str], str]]): List of rules for modifying URLs.
-        """
         self.rules = rules
         self.ignore_next = False
         self.last_activity = time.time()
@@ -48,14 +27,13 @@ class ClipboardWatcher:
         self.atom = None
         self.hwnd = None
 
-        # Start watchdog timer
-        self.watchdog_thread = threading.Thread(target=self._watchdog, daemon=True)
-        self.watchdog_thread.start()
+        # Solo arrancar watchdog en desarrollo (no en EXE compilado)
+        if not getattr(sys, "frozen", False):
+            self.watchdog_thread = threading.Thread(target=self._watchdog, daemon=True)
+            self.watchdog_thread.start()
 
-        # Try to find and clean up any existing windows with our base class name
+        # Cleanup any existing windows, register ours, etc.
         self._cleanup_existing_windows()
-
-        # Register our new class with unique name
         wc = win32gui.WNDCLASS()
         wc.lpfnWndProc = self.wnd_proc  # type: ignore
         wc.lpszClassName = self.CLASS_NAME  # type: ignore
@@ -208,7 +186,10 @@ class ClipboardWatcher:
         except Exception as e:
             # Log full traceback for debugging
             import traceback
-            logger.error(f"Error handling clipboard change: {e}\n" + traceback.format_exc())
+
+            logger.error(
+                f"Error handling clipboard change: {e}\n" + traceback.format_exc()
+            )
             self.last_activity = time.time()
 
     def cleanup(self):
