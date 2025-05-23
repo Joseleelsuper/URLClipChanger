@@ -1,0 +1,25 @@
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+from typing import List, Tuple, Dict
+
+Rule = Tuple[List[str], str]
+
+
+def add_suffix(url: str, rules: List[Rule]) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    for domains, suffix in rules:
+        if any(d in host for d in domains):
+            if suffix.startswith(("http://", "https://")):
+                return suffix
+            if suffix.startswith("/"):
+                new_path = parsed.path.rstrip("/") + suffix
+                return urlunparse(parsed._replace(path=new_path))
+            if suffix.startswith("?"):
+                qs: Dict[str, List[str]] = parse_qs(parsed.query)
+                for param in suffix.lstrip("?").split("&"):
+                    k, v = param.split("=", 1)
+                    qs[k] = [v]
+                new_q = urlencode(qs, doseq=True)
+                return urlunparse(parsed._replace(query=new_q))
+            return url.rstrip("/") + suffix
+    return url
