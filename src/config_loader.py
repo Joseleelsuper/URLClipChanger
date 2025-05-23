@@ -17,16 +17,40 @@ def load_rules() -> List[Rule]:
         List[Rule]: A list of rules, where each rule is a tuple containing:
                     a list of domains and a suffix to add.
     """
-    # Primero intentamos la ruta estándar cuando se ejecuta como script
-    config_path = Path(__file__).parent.parent / "configs"
-    
-    # Si estamos en un ejecutable PyInstaller
+    # Intentamos todas las posibles rutas de configuración
+    possible_paths = []
+      # Si estamos en un ejecutable PyInstaller
     if getattr(sys, 'frozen', False):
-        # PyInstaller crea un directorio temporal y guarda la ruta en _MEIPASS
-        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
-        config_path = Path(base_path) / "configs"
+        # 1. Directorio _MEIPASS (directorio temporal de PyInstaller)
+        if hasattr(sys, '_MEIPASS'):
+            possible_paths.append(Path(getattr(sys, '_MEIPASS')) / "configs")
+        
+        # 2. Directorio del ejecutable
+        exe_dir = Path(os.path.dirname(sys.executable))
+        possible_paths.append(exe_dir / "configs")
+        
+    # 3. Ruta estándar cuando se ejecuta como script
+    script_dir = Path(__file__).parent.parent
+    possible_paths.append(script_dir / "configs")
     
-    json_files = list(config_path.glob("*.json"))
+    # 4. Directorio de trabajo actual
+    possible_paths.append(Path(os.getcwd()) / "configs")
+    
+    # Imprimir información de depuración
+    print("Buscando archivos de configuración en:")
+    for path in possible_paths:
+        print(f"  - {path}")
+    
+    # Inicializar json_files
+    json_files = []
+    
+    # Buscar en todas las rutas posibles
+    for config_path in possible_paths:
+        json_files = list(config_path.glob("*.json"))
+        if json_files:
+            print(f"Encontrados archivos de configuración en: {config_path}")
+            break
+            
     if not json_files:
         # Buscar en rutas alternativas
         alt_paths = [

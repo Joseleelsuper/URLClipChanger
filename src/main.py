@@ -2,13 +2,30 @@ import sys
 import ctypes
 import os
 
-# Asegurarse de que 'src' esté en el path de Python
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if os.path.basename(current_dir) == 'src':
-    sys.path.insert(0, os.path.dirname(current_dir))
+# Determinar si estamos ejecutando desde un ejecutable de PyInstaller o como script normal
+FROZEN = getattr(sys, 'frozen', False)
+
+# Establecer la ruta base correctamente según modo de ejecución
+if FROZEN:
+    # Ejecutando desde ejecutable PyInstaller
+    BASE_DIR = os.path.dirname(sys.executable)
+    # Asegurarse de que el directorio de trabajo actual sea el directorio del ejecutable
+    os.chdir(BASE_DIR)
 else:
-    # Si estamos ejecutando desde el ejecutable compilado, añadir el directorio actual
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    # Ejecutando como script Python
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.basename(current_dir) == 'src':
+        BASE_DIR = os.path.dirname(current_dir)
+    else:
+        BASE_DIR = current_dir
+    
+    sys.path.insert(0, BASE_DIR)
+
+# Imprimir información de depuración
+print(f"Modo de ejecución: {'Ejecutable' if FROZEN else 'Script'}")
+print(f"Directorio base: {BASE_DIR}")
+print(f"Directorio de trabajo: {os.getcwd()}")
+print(f"sys.path: {sys.path}")
 
 # Constants for hiding console window
 SW_HIDE = 0
