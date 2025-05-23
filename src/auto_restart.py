@@ -3,22 +3,53 @@
 import sys
 import subprocess
 import time
+import os
 from typing import Callable
-from logger import logger
+
+# Asegurarse de que 'src' esté en el path de Python
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(current_dir) == 'src':
+    sys.path.insert(0, os.path.dirname(current_dir))
+
+try:
+    from logger import logger
+except ImportError:
+    from src.logger import logger
 
 
 def restart_program():
-    """Restart the current program with a clean process"""
+    """Restart the current program with a clean process, detached from current terminal."""
 
     logger.info("Restarting program...")
-    python = sys.executable
-    script = sys.argv[0]
-
-    subprocess.Popen(
-        [python, script] + sys.argv[1:],
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        start_new_session=True,
-    )
+    
+    # DETACHED_PROCESS flag (0x00000008) completely separates the new process from the 
+    # parent console, preventing terminal interference
+    DETACHED_PROCESS = 0x00000008
+    
+    # Check if we're running from a PyInstaller executable or as a Python script
+    if getattr(sys, 'frozen', False):
+        # We're running from a PyInstaller executable
+        executable = sys.executable
+        args = []
+    else:
+        # We're running as a Python script
+        executable = sys.executable
+        script = sys.argv[0]
+        args = [script] + sys.argv[1:]
+    
+    # start_new_session=True helps in creating a separate session
+    # We redirect stdout and stderr to NUL to avoid any terminal interference
+    with open(os.devnull, 'w') as devnull:
+        subprocess.Popen(
+            [executable] + args,
+            creationflags=DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+            start_new_session=True,
+            stdout=devnull,
+            stderr=devnull,
+        )
+    
+    # Give the new process a moment to start before exiting this one
+    time.sleep(0.5)
     sys.exit(0)
 
 

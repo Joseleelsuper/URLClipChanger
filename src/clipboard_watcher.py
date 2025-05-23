@@ -6,9 +6,20 @@ import pyperclip
 import time
 import threading
 import os
+import sys
 from typing import Any, List, Optional, Tuple
-from suffix_adder import add_suffix
-from logger import logger
+
+# Asegurarse de que 'src' esté en el path de Python
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(current_dir) == 'src':
+    sys.path.insert(0, os.path.dirname(current_dir))
+
+try:
+    from suffix_adder import add_suffix
+    from logger import logger
+except ImportError:
+    from src.suffix_adder import add_suffix
+    from src.logger import logger
 
 
 class ClipboardWatcher:
@@ -221,5 +232,5 @@ class ClipboardWatcher:
             logger.error(f"Message pump error: {e}")
             return True
         finally:
-            if self.restart_flag:
-                self.cleanup()
+            # Always clean up resources, regardless of restart state
+            self.cleanup()
