@@ -15,9 +15,9 @@ def restart_program():
     script = sys.argv[0]
 
     subprocess.Popen(
-        [python, script] + sys.argv[1:], 
+        [python, script] + sys.argv[1:],
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        start_new_session=True
+        start_new_session=True,
     )
     sys.exit(0)
 
@@ -39,9 +39,7 @@ def run_with_auto_restart(main_func: Callable, max_restarts: int = 5):
             # If main_func returns True, it means restart was requested
             if result is True:
                 restart_count += 1
-                logger.info(
-                    f"Restart requested. Count: {restart_count}/{max_restarts}"
-                )
+                logger.info(f"Restart requested. Count: {restart_count}/{max_restarts}")
                 time.sleep(2)  # Wait a bit before restarting
                 continue
             else:

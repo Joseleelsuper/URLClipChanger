@@ -10,19 +10,16 @@ def main():
     try:
         rules = load_rules()
         watcher = ClipboardWatcher(rules)
-        restart_requested = watcher.run()  # Returns True if restart requested
-        
-        # If restart is requested, use the restart_program function
-        # which creates a completely new process
+        restart_requested = watcher.run()
         if restart_requested:
             restart_program()
-        
-        return False  # No restart needed
+
+        return False
     except Exception as e:
         logger.error(f"Failed to start: {e}")
-        return True  # Request restart via the normal auto_restart mechanism
+        return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.info("URL Clip Changer starting...")
     run_with_auto_restart(main, max_restarts=5)

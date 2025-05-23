@@ -3,11 +3,12 @@ from src.suffix_adder import add_suffix
 
 # Conjunto de reglas para tests
 RULES = [
-    (["example.com"],           "?ref=123"),
-    (["path.test"],             "/promo/456"),
-    (["full.url"],              "https://override.test/xyz"),
-    (["fallback.test"],         "-suffix"),
+    (["example.com"], "?ref=123"),
+    (["path.test"], "/promo/456"),
+    (["full.url"], "https://override.test/xyz"),
+    (["fallback.test"], "-suffix"),
 ]
+
 
 class TestAddSuffix(unittest.TestCase):
     # Query suffix: sin parámetros previos
@@ -63,5 +64,6 @@ class TestAddSuffix(unittest.TestCase):
         expected = "https://example.com/page?ref=123"
         self.assertEqual(add_suffix(url, RULES), expected)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
