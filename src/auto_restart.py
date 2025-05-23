@@ -3,17 +3,17 @@
 import sys
 import subprocess
 import time
+from typing import Callable
 from logger import logger
 
 
 def restart_program():
     """Restart the current program with a clean process"""
+
     logger.info("Restarting program...")
     python = sys.executable
     script = sys.argv[0]
-    
-    # Make sure to use CREATE_NEW_PROCESS_GROUP flag for Windows
-    # This ensures a completely new process context
+
     subprocess.Popen(
         [python, script] + sys.argv[1:], 
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
@@ -22,8 +22,13 @@ def restart_program():
     sys.exit(0)
 
 
-def run_with_auto_restart(main_func, max_restarts=5):
-    """Run main function with auto-restart capability"""
+def run_with_auto_restart(main_func: Callable, max_restarts: int = 5):
+    """Run main function with auto-restart capability.
+
+    Args:
+        main_func (Callable): The main function to run.
+        max_restarts (int, optional): Maximum number of restarts allowed. Defaults to 5.
+    """
     restart_count = 0
 
     while restart_count < max_restarts:

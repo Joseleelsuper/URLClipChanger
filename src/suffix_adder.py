@@ -5,6 +5,18 @@ Rule = Tuple[List[str], str]
 
 
 def add_suffix(url: str, rules: List[Rule]) -> str:
+    """Add suffix to the URL based on the rules.
+
+    Args:
+        url (str): URL to modify
+        rules (List[Rule]): List of rules, where each rule is a tuple containing:
+            - List[str]: List of domains to match (e.g., ["example.com", "sub.example.com"])
+            - str: Suffix to add (e.g., "https://example.com/some/path")
+
+    Returns:
+        str: Modified URL with the suffix added, or the original URL if no rules match.
+    """
+
     parsed = urlparse(url)
     host = parsed.netloc.lower()
     for domains, suffix in rules:

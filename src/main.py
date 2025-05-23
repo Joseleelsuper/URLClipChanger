@@ -1,3 +1,4 @@
+from auto_restart import restart_program
 from config_loader import load_rules
 from clipboard_watcher import ClipboardWatcher
 from auto_restart import run_with_auto_restart
@@ -14,9 +15,7 @@ def main():
         # If restart is requested, use the restart_program function
         # which creates a completely new process
         if restart_requested:
-            from auto_restart import restart_program
             restart_program()
-            # This won't return
         
         return False  # No restart needed
     except Exception as e:

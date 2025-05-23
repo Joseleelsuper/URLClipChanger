@@ -6,6 +6,14 @@ Rule = Tuple[List[str], str]
 
 
 def load_rules() -> List[Rule]:
+    """Load rules from a JSON file.
+
+    Raises:
+        FileNotFoundError: If no rules JSON file is found.
+
+    Returns:
+        List[Rule]: A list of rules, where each rule is a tuple containing:
+    """
     config_path = Path(__file__).parent.parent / "configs"
     json_files = list(config_path.glob("*.json"))
     if not json_files:

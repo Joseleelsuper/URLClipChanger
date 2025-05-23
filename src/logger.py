@@ -15,9 +15,9 @@ class Logger:
     
     def _initialize_logger(self):
         """Initialize the logger with file and console handlers"""
+        
         self.logger = logging.getLogger("URLClipChanger")
         self.logger.setLevel(logging.DEBUG)
-          # Create formatter with timestamp (HH:MM:SS)
         formatter = logging.Formatter(
             "[%(levelname)s] [%(asctime)s] %(message)s", 
             datefmt="%H:%M:%S"
