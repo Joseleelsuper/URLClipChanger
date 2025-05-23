@@ -206,7 +206,9 @@ class ClipboardWatcher:
                         self.ignore_next = False
 
         except Exception as e:
-            logger.error(f"Clipboard handling error: {e}")
+            # Log full traceback for debugging
+            import traceback
+            logger.error(f"Error handling clipboard change: {e}\n" + traceback.format_exc())
             self.last_activity = time.time()
 
     def cleanup(self):
@@ -226,10 +228,13 @@ class ClipboardWatcher:
 
         try:
             logger.info("Clipboard watcher started")
+            # Pump messages until quit; restart_flag set by watchdog on deadlock
             win32gui.PumpMessages()
+            # Return restart flag indicating whether auto-restart requested
             return self.restart_flag
         except Exception as e:
             logger.error(f"Message pump error: {e}")
+            # On message pump error, signal restart
             return True
         finally:
             # Always clean up resources, regardless of restart state

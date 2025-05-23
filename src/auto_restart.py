@@ -22,31 +22,25 @@ def restart_program():
 
     logger.info("Restarting program...")
     
-    # DETACHED_PROCESS flag (0x00000008) completely separates the new process from the 
-    # parent console, preventing terminal interference
-    DETACHED_PROCESS = 0x00000008
-    
-    # Check if we're running from a PyInstaller executable or as a Python script
+    # Determine restart command: use original EXE path when frozen to avoid temp _MEI folder
     if getattr(sys, 'frozen', False):
-        # We're running from a PyInstaller executable
-        executable = sys.executable
-        args = []
+        # Use the path to the original executable (argv[0])
+        exe_path = os.path.abspath(sys.argv[0])
+        cmd = [exe_path] + sys.argv[1:]
+        cwd = os.path.dirname(exe_path)
     else:
-        # We're running as a Python script
-        executable = sys.executable
-        script = sys.argv[0]
-        args = [script] + sys.argv[1:]
-    
-    # start_new_session=True helps in creating a separate session
-    # We redirect stdout and stderr to NUL to avoid any terminal interference
+        # Python script mode
+        exe = sys.executable
+        script = os.path.abspath(sys.argv[0])
+        cmd = [exe, script] + sys.argv[1:]
+        cwd = None
+
+    # Launch new process without inheriting handles so temp dir can be removed
     with open(os.devnull, 'w') as devnull:
-        subprocess.Popen(
-            [executable] + args,
-            creationflags=DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-            start_new_session=True,
-            stdout=devnull,
-            stderr=devnull,
-        )
+        popen_kwargs = {'stdout': devnull, 'stderr': devnull, 'close_fds': True}
+        if cwd:
+            popen_kwargs['cwd'] = cwd
+        subprocess.Popen(cmd, **popen_kwargs)
     
     # Give the new process a moment to start before exiting this one
     time.sleep(0.5)
