@@ -1,0 +1,2 @@
+pywin32==310
+pyperclip==1.9.0
