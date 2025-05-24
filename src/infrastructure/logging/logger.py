@@ -41,8 +41,8 @@ class Logger:
             # Si estamos en un ejecutable, guardar logs junto al ejecutable
             base_dir = Path(sys.executable).parent
         else:
-            # En desarrollo, navegar hasta la raíz del proyecto desde infrastructure/logging
-            base_dir = Path(__file__).parent.parent.parent.parent
+            # En desarrollo, usar la estructura de carpetas del proyecto
+            base_dir = Path(__file__).parent.parent
             
         log_dir = base_dir / "logs"
         os.makedirs(log_dir, exist_ok=True)
@@ -54,25 +54,50 @@ class Logger:
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
         
-        # Add handlers to logger
+        # Add handlers
         self.logger.addHandler(console_handler)
         self.logger.addHandler(file_handler)
-        
-    def debug(self, message):
-        self.logger.debug(message)
-        
-    def info(self, message):
-        self.logger.info(message)
-        
-    def warning(self, message):
-        self.logger.warning(message)
-        
-    def error(self, message):
-        self.logger.error(message)
-        
-    def critical(self, message):
-        self.logger.critical(message)
+    
+    def debug(self, msg: str):
+        """Log debug message.
+
+        Args:
+            msg (str): Message to log.
+        """
+        self.logger.debug(msg)
+    
+    def info(self, msg: str):
+        """Log info message.
+
+        Args:
+            msg (str): Message to log.
+        """
+        self.logger.info(msg)
+    
+    def warning(self, msg: str):
+        """Log warning message.
+
+        Args:
+            msg (str): Message to log.
+        """
+        self.logger.warning(msg)
+    
+    def error(self, msg: str):
+        """Log error message.
+
+        Args:
+            msg (str): Message to log.
+        """
+        self.logger.error(msg)
+    
+    def critical(self, msg: str):
+        """Log critical message.
+
+        Args:
+            msg (str): Message to log.
+        """
+        self.logger.critical(msg)
 
 
-# Singleton instance
+# Create singleton instance
 logger = Logger()

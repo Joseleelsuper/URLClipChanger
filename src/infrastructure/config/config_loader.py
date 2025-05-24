@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# instead of pointing to the app folder, point to src so `import shared…` works
+
 src_path = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.insert(0, src_path)
 

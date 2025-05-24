@@ -2,6 +2,16 @@ import sys
 import ctypes
 import os
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+src_path = os.path.abspath(os.path.join(current_dir, ".."))
+sys.path.insert(0, src_path)
+
+from infrastructure.logging.logger import logger  # noqa: E402
+from shared.auto_restart import restart_program, run_with_auto_restart # noqa: E402
+from infrastructure.platform.windows.clipboard_watcher import ClipboardWatcher # noqa: E402
+from infrastructure.config.config_loader import load_rules # noqa: E402
+
 # Determinar si estamos ejecutando desde un ejecutable de PyInstaller o como script normal
 FROZEN = getattr(sys, 'frozen', False)
 
@@ -12,17 +22,15 @@ if FROZEN:
     # Asegurarse de que el directorio de trabajo actual sea el directorio del ejecutable
     os.chdir(BASE_DIR)
 else:
+    # Ejecutando como script Python
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # instead of pointing to the app folder, point to src so `import shared…` works
-    src_path = os.path.abspath(os.path.join(current_dir, ".."))
-    sys.path.insert(0, src_path)
-
-# Importaciones de módulos locales que requieren la ruta ajustada
-from shared.auto_restart import restart_program, run_with_auto_restart  # noqa: E402
-from infrastructure.config.config_loader import load_rules # noqa: E402
-from infrastructure.platform.windows.clipboard_watcher import ClipboardWatcher # noqa: E402
-from infrastructure.logging.logger import logger # noqa: E402
-
+    if os.path.basename(current_dir) == 'src':
+        BASE_DIR = os.path.dirname(current_dir)
+    else:
+        BASE_DIR = current_dir
+    
+    sys.path.insert(0, BASE_DIR)
+    
 # Constants for hiding console window
 SW_HIDE = 0
 if sys.platform == "win32":

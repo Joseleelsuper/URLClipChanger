@@ -2,6 +2,11 @@ import sys
 import ctypes
 import os
 
+from auto_restart import restart_program, run_with_auto_restart
+from config_loader import load_rules
+from clipboard_watcher import ClipboardWatcher
+from logger import logger
+
 # Determinar si estamos ejecutando desde un ejecutable de PyInstaller o como script normal
 FROZEN = getattr(sys, 'frozen', False)
 
@@ -28,20 +33,6 @@ if sys.platform == "win32":
     user32 = ctypes.WinDLL("user32")
     GetConsoleWindow = kernel32.GetConsoleWindow
     ShowWindow = user32.ShowWindow
-
-# Ahora podemos importar nuestros módulos
-try:
-    # Intentar importar directamente (cuando se ejecuta desde src)
-    from auto_restart import restart_program, run_with_auto_restart
-    from config_loader import load_rules
-    from clipboard_watcher import ClipboardWatcher
-    from logger import logger
-except ImportError:
-    # Si falla, intentar importar con el prefijo 'src.' (cuando se ejecuta desde la raíz)
-    from legacy.auto_restart import restart_program, run_with_auto_restart
-    from legacy.config_loader import load_rules
-    from legacy.clipboard_watcher import ClipboardWatcher
-    from legacy.logger import logger
 
 
 def main():
