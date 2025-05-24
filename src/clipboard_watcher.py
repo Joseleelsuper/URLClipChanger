@@ -8,6 +8,7 @@ import threading
 import os
 import sys
 from typing import Any, List, Optional, Tuple
+import traceback
 
 from suffix_adder import add_suffix
 from logger import logger
@@ -47,7 +48,6 @@ class ClipboardWatcher:
             ctypes.windll.user32.AddClipboardFormatListener(self.hwnd)
         except Exception as e:
             logger.error(f"Failed to register window class: {e}")
-            # Re-raise to be caught by main's exception handler
             raise
 
     def _cleanup_existing_windows(self):
@@ -64,10 +64,10 @@ class ClipboardWatcher:
                         win32gui.SendMessage(hwnd, win32con.WM_CLOSE, 0, 0)
                     except Exception as e:
                         logger.debug(f"Error closing window {hwnd}: {e}")
-            except Exception:
-                # Skip any windows that cause errors when getting class name
-                pass
-            return True
+            except Exception as e:
+                logger.debug(f"Error enumerating windows: {e}")
+            finally:
+                return True
 
         try:
             win32gui.EnumWindows(enum_windows_callback, None)
@@ -129,7 +129,7 @@ class ClipboardWatcher:
                     finally:
                         win32clipboard.CloseClipboard()
             except Exception as e:
-                logger.warning(f"Clipboard read attempt {attempt + 1} failed: {e}")
+                logger.debug(f"Clipboard read attempt {attempt + 1} failed: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(0.1)
                 else:
@@ -152,7 +152,7 @@ class ClipboardWatcher:
                     pyperclip.copy(text)
                     return True
             except Exception as e:
-                logger.warning(f"Clipboard write attempt {attempt + 1} failed: {e}")
+                logger.debug(f"Clipboard write attempt {attempt + 1} failed: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(0.1)
                 else:
@@ -184,9 +184,6 @@ class ClipboardWatcher:
                         self.ignore_next = False
 
         except Exception as e:
-            # Log full traceback for debugging
-            import traceback
-
             logger.error(
                 f"Error handling clipboard change: {e}\n" + traceback.format_exc()
             )
@@ -209,14 +206,11 @@ class ClipboardWatcher:
 
         try:
             logger.info("Clipboard watcher started")
-            # Pump messages until quit; restart_flag set by watchdog on deadlock
             win32gui.PumpMessages()
-            # Return restart flag indicating whether auto-restart requested
             return self.restart_flag
         except Exception as e:
             logger.error(f"Message pump error: {e}")
             # On message pump error, signal restart
             return True
         finally:
-            # Always clean up resources, regardless of restart state
             self.cleanup()

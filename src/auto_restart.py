@@ -5,7 +5,6 @@ import subprocess
 import time
 import os
 from typing import Callable
-
 from logger import logger
 
 
@@ -62,7 +61,7 @@ def run_with_auto_restart(main_func: Callable, max_restarts: int = 5):
             break
         except Exception as e:
             restart_count += 1
-            logger.error(f"Program crashed: {e}")
+            logger.critical(f"Program crashed: {e}")
             if restart_count < max_restarts:
                 logger.info(f"Auto-restarting... ({restart_count}/{max_restarts})")
                 time.sleep(5)

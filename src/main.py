@@ -20,13 +20,7 @@ else:
         BASE_DIR = current_dir
     
     sys.path.insert(0, BASE_DIR)
-
-# Imprimir información de depuración
-print(f"Modo de ejecución: {'Ejecutable' if FROZEN else 'Script'}")
-print(f"Directorio base: {BASE_DIR}")
-print(f"Directorio de trabajo: {os.getcwd()}")
-print(f"sys.path: {sys.path}")
-
+    
 # Constants for hiding console window
 SW_HIDE = 0
 if sys.platform == "win32":
