@@ -16,20 +16,20 @@ Rule = Tuple[List[str], str]
 
 
 def _get_prioritized_config_paths() -> List[Path]:
-    """Determines a prioritized list of absolute paths to 'configs' directories
-    where configuration files might be located.
+    """Determines a prioritized list of absolute paths to check for rules.json
     The order of paths reflects the priority for searching.
 
     Returns:
-        List[Path]: A list of Paths to 'configs' directories in order of priority.
+        List[Path]: A list of Paths to potential rules.json files in order of priority.
     """
     paths: List[Path] = []
     app_name = "URLClipChanger"
 
-    # If running in a PyInstaller bundle
+    # 1. If running in a PyInstaller bundle
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).parent / "configs"
         paths.append(exe_dir / "rules.json")
+    
     # 2. User config directory
     try:
         user_config_dir = Path(appdirs.user_config_dir(app_name))
@@ -41,37 +41,48 @@ def _get_prioritized_config_paths() -> List[Path]:
     project_dir = Path(__file__).resolve().parent.parent.parent.parent / "configs"
     paths.append(project_dir / "rules.json")
 
-    unique_paths: List[Path] = []
+    # Remove duplicates while preserving order
+    unique_paths = []
     for p in paths:
         if p not in unique_paths:
             unique_paths.append(p)
-
+    
     return unique_paths
 
 
 def _find_config_file_in_paths(config_search_paths: List[Path]) -> Optional[Path]:
-    """Searches for the first '*.json' file in the given list of 'configs' directories.
-    Returns the Path to the file if found, otherwise None.
-
+    """Searches for the rules.json file in the given list of paths.
+    
     Args:
-        config_search_paths (List[Path]): A list of Paths to 'configs' directories to search.
+        config_search_paths (List[Path]): A list of paths to check for rules.json.
 
     Returns:
         Optional[Path]: The Path to the found configuration file, or None if not found.
     """
     logger.info(
-        "Searching for configuration files in the following prioritized 'configs' directories:"
+        "Searching for configuration files in the following prioritized paths:"
     )
-    for config_dir_path in config_search_paths:
-        logger.debug(f"  - Checking: {config_dir_path}")
-        if config_dir_path.is_dir():
-            json_files = sorted(list(config_dir_path.glob("*.json")))
-            if json_files:
-                found_file = json_files[0]
-                logger.info(f"  -> Found configuration file: {found_file}")
-                return found_file
+    for path in config_search_paths:
+        logger.debug(f"  - Checking: {path}")
+
+        # If path is a file, check if it exists directly
+        if path.is_file():
+            logger.info(f"  -> Found configuration file: {path}")
+            return path
+        
+        # If path is a directory, check for rules.json inside
+        elif path.is_dir():
+            rules_file = path / "rules.json"
+            if rules_file.is_file():
+                logger.info(f"  -> Found configuration file: {rules_file}")
+                return rules_file
+        
+        # Check if parent directory exists
+        elif path.parent.is_dir():
+            logger.debug(f"  - File not found: {path}")
         else:
-            logger.debug(f"  - Directory not found: {config_dir_path}")
+            logger.debug(f"  - Parent directory not found: {path.parent}")
+            
     logger.warning("No configuration file found in any of the searched paths.")
     return None
 
@@ -91,13 +102,30 @@ def load_rules() -> List[Rule]:
 
     config_file_path = _find_config_file_in_paths(search_paths)
 
+    # Create default rules file if not found
     if not config_file_path:
-        searched_paths_str = "\\n".join([f"  - {p}" for p in search_paths])
-        logger.error("No rules JSON file found.")
-        raise FileNotFoundError(
-            "No rules JSON file found. Searched in the following 'configs' directories:\n"
-            f"{searched_paths_str}"
-        )
+        # Try to create and save a default empty rules file
+        try:
+            # Use the first path from the search paths as the default location
+            default_path = search_paths[0]
+            
+            # Create parent directories if they don't exist
+            if not default_path.parent.exists():
+                default_path.parent.mkdir(parents=True, exist_ok=True)
+                
+            # Create empty rules file
+            with open(default_path, "w", encoding="utf-8") as f:
+                json.dump([], f, indent=4)
+                
+            logger.info(f"Created default empty rules file at: {default_path}")
+            config_file_path = default_path
+        except Exception as e:
+            logger.error(f"Failed to create default rules file: {e}")
+            searched_paths_str = "\n".join([f"  - {p}" for p in search_paths])
+            raise FileNotFoundError(
+                "No rules JSON file found. Searched in the following paths:\n"
+                f"{searched_paths_str}"
+            )
 
     logger.info(f"Loading rules from: {config_file_path}")
     with open(config_file_path, "r", encoding="utf-8") as f:
