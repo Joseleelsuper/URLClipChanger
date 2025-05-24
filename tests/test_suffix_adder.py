@@ -1,5 +1,6 @@
 import unittest
-from legacy.suffix_adder import add_suffix
+
+from src.core.services.url_processor import add_suffix
 
 # Conjunto de reglas para tests
 RULES = [

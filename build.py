@@ -58,11 +58,11 @@ def main():
     project_dir = Path(__file__).parent
     build_dir = project_dir / "build"
     dist_dir = project_dir / "dist"
-    
-    # Clean previous builds
+      # Clean previous builds
     cleanup_old_builds(build_dir, dist_dir)
-      # Define PyInstaller command
-    main_script = project_dir / "url_clip_changer" / "app" / "main.py"
+    
+    # Define PyInstaller command
+    main_script = project_dir / "src" / "app" / "main.py"
     args = [
         "pyinstaller",
         "--name=URLClipChanger",
@@ -75,8 +75,8 @@ def main():
         "--hidden-import=win32con",
         "--hidden-import=win32gui",
         "--hidden-import=win32clipboard",
-        "--hidden-import=pyperclip",        # Important: Add url_clip_changer to path to fix imports
-        "--paths=url_clip_changer",
+        "--hidden-import=pyperclip",        # Important: Add src to path to fix imports
+        "--paths=src",
         # Clean the temporary files when the application exits
         "--clean",
         f"--add-data={project_dir / 'configs'};configs",  # Include config folder

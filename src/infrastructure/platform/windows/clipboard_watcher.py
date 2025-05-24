@@ -10,13 +10,19 @@ import sys
 from typing import Any, List, Optional, Tuple
 import traceback
 
-from suffix_adder import add_suffix
-from logger import logger
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# instead of pointing to the app folder, point to src so `import shared…` works
+src_path = os.path.abspath(os.path.join(current_dir, ".."))
+sys.path.insert(0, src_path)
+
+from core.services.url_processor import add_suffix  # noqa: E402
+from infrastructure.logging.logger import logger  # noqa: E402
 
 
 class ClipboardWatcher:
     BASE_CLASS_NAME = "ClipboardWatcher"
     CLASS_NAME = f"{BASE_CLASS_NAME}_{int(time.time())}_{os.getpid()}"
+    WM_CLIPBOARDUPDATE = 0x031D
 
     def __init__(self, rules: List[Tuple[List[str], str]]):
         self.rules = rules

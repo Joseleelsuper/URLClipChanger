@@ -12,15 +12,17 @@ if FROZEN:
     # Asegurarse de que el directorio de trabajo actual sea el directorio del ejecutable
     os.chdir(BASE_DIR)
 else:
-    # Ejecutando como script Python
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    if os.path.basename(current_dir) == 'src':
-        BASE_DIR = os.path.dirname(current_dir)
-    else:
-        BASE_DIR = current_dir
-    
-    sys.path.insert(0, BASE_DIR)
-    
+    # instead of pointing to the app folder, point to src so `import shared…` works
+    src_path = os.path.abspath(os.path.join(current_dir, ".."))
+    sys.path.insert(0, src_path)
+
+# Importaciones de módulos locales que requieren la ruta ajustada
+from shared.auto_restart import restart_program, run_with_auto_restart  # noqa: E402
+from infrastructure.config.config_loader import load_rules # noqa: E402
+from infrastructure.platform.windows.clipboard_watcher import ClipboardWatcher # noqa: E402
+from infrastructure.logging.logger import logger # noqa: E402
+
 # Constants for hiding console window
 SW_HIDE = 0
 if sys.platform == "win32":
@@ -28,20 +30,6 @@ if sys.platform == "win32":
     user32 = ctypes.WinDLL("user32")
     GetConsoleWindow = kernel32.GetConsoleWindow
     ShowWindow = user32.ShowWindow
-
-# Ahora podemos importar nuestros módulos
-try:
-    # Intentar importar directamente (cuando se ejecuta desde src)
-    from auto_restart import restart_program, run_with_auto_restart
-    from config_loader import load_rules
-    from clipboard_watcher import ClipboardWatcher
-    from logger import logger
-except ImportError:
-    # Si falla, intentar importar con el prefijo 'src.' (cuando se ejecuta desde la raíz)
-    from legacy.auto_restart import restart_program, run_with_auto_restart
-    from legacy.config_loader import load_rules
-    from legacy.clipboard_watcher import ClipboardWatcher
-    from legacy.logger import logger
 
 
 def main():
