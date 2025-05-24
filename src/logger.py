@@ -18,6 +18,10 @@ class Logger:
         """Initialize the logger with file and console handlers"""
         self.logger = logging.getLogger("URLClipChanger")
         self.logger.setLevel(logging.DEBUG)
+
+        # Prevent adding handlers if they already exist for this logger
+        if self.logger.hasHandlers():
+            return
         
         # Create formatter
         formatter = logging.Formatter(
@@ -51,24 +55,44 @@ class Logger:
         self.logger.addHandler(console_handler)
         self.logger.addHandler(file_handler)
     
-    def debug(self, msg):
-        """Log debug message"""
+    def debug(self, msg: str):
+        """Log debug message.
+
+        Args:
+            msg (str): Message to log.
+        """
         self.logger.debug(msg)
     
-    def info(self, msg):
-        """Log info message"""
+    def info(self, msg: str):
+        """Log info message.
+
+        Args:
+            msg (str): Message to log.
+        """
         self.logger.info(msg)
     
-    def warning(self, msg):
-        """Log warning message"""
+    def warning(self, msg: str):
+        """Log warning message.
+
+        Args:
+            msg (str): Message to log.
+        """
         self.logger.warning(msg)
     
-    def error(self, msg):
-        """Log error message"""
+    def error(self, msg: str):
+        """Log error message.
+
+        Args:
+            msg (str): Message to log.
+        """
         self.logger.error(msg)
     
-    def critical(self, msg):
-        """Log critical message"""
+    def critical(self, msg: str):
+        """Log critical message.
+
+        Args:
+            msg (str): Message to log.
+        """
         self.logger.critical(msg)
 
 
