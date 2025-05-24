@@ -1,5 +1,5 @@
 import unittest
-from src.suffix_adder import add_suffix
+from legacy.suffix_adder import add_suffix
 
 # Conjunto de reglas para tests
 RULES = [

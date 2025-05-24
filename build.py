@@ -61,9 +61,8 @@ def main():
     
     # Clean previous builds
     cleanup_old_builds(build_dir, dist_dir)
-    
-    # Define PyInstaller command
-    main_script = project_dir / "src" / "main.py"
+      # Define PyInstaller command
+    main_script = project_dir / "url_clip_changer" / "app" / "main.py"
     args = [
         "pyinstaller",
         "--name=URLClipChanger",
@@ -76,9 +75,8 @@ def main():
         "--hidden-import=win32con",
         "--hidden-import=win32gui",
         "--hidden-import=win32clipboard",
-        "--hidden-import=pyperclip",
-        # Important: Add src to path to fix the auto_restart import issue
-        "--paths=src",
+        "--hidden-import=pyperclip",        # Important: Add url_clip_changer to path to fix imports
+        "--paths=url_clip_changer",
         # Clean the temporary files when the application exits
         "--clean",
         f"--add-data={project_dir / 'configs'};configs",  # Include config folder

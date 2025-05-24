@@ -38,10 +38,10 @@ try:
     from logger import logger
 except ImportError:
     # Si falla, intentar importar con el prefijo 'src.' (cuando se ejecuta desde la raíz)
-    from src.auto_restart import restart_program, run_with_auto_restart
-    from src.config_loader import load_rules
-    from src.clipboard_watcher import ClipboardWatcher
-    from src.logger import logger
+    from legacy.auto_restart import restart_program, run_with_auto_restart
+    from legacy.config_loader import load_rules
+    from legacy.clipboard_watcher import ClipboardWatcher
+    from legacy.logger import logger
 
 
 def main():

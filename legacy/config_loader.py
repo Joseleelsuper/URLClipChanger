@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
-from src.logger import logger
+from legacy.logger import logger
 
 Rule = Tuple[List[str], str]
 
