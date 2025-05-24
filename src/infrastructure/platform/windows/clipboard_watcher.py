@@ -9,6 +9,7 @@ import os
 import sys
 from typing import Any, List, Optional, Tuple
 import traceback
+import uuid
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,20 +20,31 @@ from core.services.url_processor import add_suffix  # noqa: E402
 from infrastructure.logging.logger import logger  # noqa: E402
 
 class ClipboardWatcher:
+    """Watches the clipboard for changes and processes URLs."""
+
     BASE_CLASS_NAME = "ClipboardWatcher"
     CLASS_NAME = f"{BASE_CLASS_NAME}_{int(time.time())}_{os.getpid()}"
 
     def __init__(self, rules: List[Tuple[List[str], str]]):
-        self.rules = rules
-        self.ignore_next = False
-        self.last_activity = time.time()
-        self.is_running = True
-        self.restart_flag = False
-        self.clipboard_access_lock = threading.Lock()
-        self.atom = None
-        self.hwnd = None
+        """Initialize the clipboard watcher.
 
-        # Solo arrancar watchdog en desarrollo (no en EXE compilado)
+        Args:
+            rules: List of rules to apply to URLs
+        """
+        self.rules = rules
+        self.check_interval = 1.0
+        self.prev_clipboard = ""
+        self.running = True
+        self.hwnd = None
+        self.hinst = None
+        self.window_class_name = f"ClipboardWatcher_{uuid.uuid4().hex}"
+        self.last_activity = time.time()
+        self.restart_flag = False
+        self.ignore_next = False
+        # Add a lock for clipboard access to avoid threading issues
+        self.clipboard_access_lock = threading.Lock()
+
+        # Only start watchdog in development (not in EXE compiled)
         if not getattr(sys, "frozen", False):
             self.watchdog_thread = threading.Thread(target=self._watchdog, daemon=True)
             self.watchdog_thread.start()
@@ -41,12 +53,12 @@ class ClipboardWatcher:
         self._cleanup_existing_windows()
         wc = win32gui.WNDCLASS()
         wc.lpfnWndProc = self.wnd_proc  # type: ignore
-        wc.lpszClassName = self.CLASS_NAME  # type: ignore
+        wc.lpszClassName = self.window_class_name  # type: ignore
         try:
-            logger.debug(f"Registering window class: {self.CLASS_NAME}")
+            logger.debug(f"Registering window class: {self.window_class_name}")
             self.atom = win32gui.RegisterClass(wc)
             self.hwnd = win32gui.CreateWindow(
-                self.atom, self.CLASS_NAME, 0, 0, 0, 0, 0, 0, 0, 0, None
+                self.atom, self.window_class_name, 0, 0, 0, 0, 0, 0, 0, 0, None
             )
             self.WM_CLIPBOARDUPDATE = 0x031D
             ctypes.windll.user32.AddClipboardFormatListener(self.hwnd)
@@ -102,12 +114,12 @@ class ClipboardWatcher:
     def _watchdog(self):
         """Watchdog timer to detect if the program gets stuck"""
 
-        while self.is_running:
+        while self.running:
             time.sleep(10)  # Check every 10 seconds
             if time.time() - self.last_activity > 30:  # 30 seconds without activity
                 logger.warning("Possible deadlock detected, requesting restart...")
                 self.restart_flag = True
-                self.is_running = False
+                self.running = False
                 try:
                     win32gui.PostMessage(self.hwnd, win32con.WM_QUIT, 0, 0)
                 except Exception as e:
@@ -196,7 +208,7 @@ class ClipboardWatcher:
     def cleanup(self):
         """Clean up resources"""
 
-        self.is_running = False
+        self.running = False
         try:
             if self.hwnd:
                 ctypes.windll.user32.RemoveClipboardFormatListener(self.hwnd)
@@ -218,3 +230,48 @@ class ClipboardWatcher:
             return True
         finally:
             self.cleanup()
+
+    def _create_window(self):
+        """Create a hidden window to receive clipboard change messages."""
+        try:
+            # Use the instance-specific window class name
+            logger.debug(f"Registering window class: {self.window_class_name}")
+
+            # Check if the window class already exists using EnumWindows
+            found_existing = [False]
+            
+            def check_class_name(hwnd, extra):
+                try:
+                    class_name = win32gui.GetClassName(hwnd)
+                    if class_name == self.window_class_name:
+                        found_existing[0] = True
+                except Exception:
+                    pass
+                return True
+            
+            win32gui.EnumWindows(check_class_name, None)
+            
+            if found_existing[0]:
+                logger.debug(f"Window class already exists: {self.window_class_name}")
+                # Generate a new unique name
+                self.window_class_name = f"ClipboardWatcher_{uuid.uuid4().hex}"
+                logger.debug(f"Generated new window class name: {self.window_class_name}")
+
+            wc = win32gui.WNDCLASS()
+            wc.lpfnWndProc = self.wnd_proc  # type: ignore
+            wc.lpszClassName = self.window_class_name  # type: ignore
+            try:
+                logger.debug(f"Registering window class: {self.window_class_name}")
+                self.atom = win32gui.RegisterClass(wc)
+                self.hwnd = win32gui.CreateWindow(
+                    self.atom, self.window_class_name, 0, 0, 0, 0, 0, 0, 0, 0, None
+                )
+                self.WM_CLIPBOARDUPDATE = 0x031D
+                ctypes.windll.user32.AddClipboardFormatListener(self.hwnd)
+            except Exception as e:
+                logger.error(f"Failed to register window class: {e}")
+                raise
+
+        except Exception as e:
+            logger.error(f"Failed to register window class: {e}")
+            raise

@@ -1,3 +1,6 @@
 pywin32==310
 pyperclip==1.9.0
 pyinstaller==6.13.0
+appdirs==1.4.4
+Pillow==11.2.1
+pystray==0.19.5

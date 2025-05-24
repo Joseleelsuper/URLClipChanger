@@ -3,6 +3,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
+import appdirs
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,17 +24,22 @@ def _get_prioritized_config_paths() -> List[Path]:
         List[Path]: A list of Paths to 'configs' directories in order of priority.
     """
     paths: List[Path] = []
+    app_name = "URLClipChanger"
 
     # If running in a PyInstaller bundle
     if getattr(sys, "frozen", False):
-        if hasattr(sys, "_MEIPASS"):
-            paths.append(Path(getattr(sys, "_MEIPASS")).resolve() / "configs")
-        exe_dir = Path(os.path.dirname(sys.executable)).resolve()
-        paths.append(exe_dir / "configs")
-    else:
-        script_project_root = Path(__file__).resolve().parent.parent
-        paths.append(script_project_root / "configs")
-    paths.append(Path(os.getcwd()).resolve() / "configs")
+        exe_dir = Path(sys.executable).parent / "configs"
+        paths.append(exe_dir / "rules.json")
+    # 2. User config directory
+    try:
+        user_config_dir = Path(appdirs.user_config_dir(app_name))
+        paths.append(user_config_dir / "rules.json")
+    except ImportError:
+        pass
+
+    # 3. Project directory
+    project_dir = Path(__file__).resolve().parent.parent.parent.parent / "configs"
+    paths.append(project_dir / "rules.json")
 
     unique_paths: List[Path] = []
     for p in paths:
