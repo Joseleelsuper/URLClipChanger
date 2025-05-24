@@ -12,7 +12,7 @@ import traceback
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # instead of pointing to the app folder, point to src so `import shared…` works
-src_path = os.path.abspath(os.path.join(current_dir, ".."))
+src_path = os.path.abspath(os.path.join(current_dir, "..", ".."))
 sys.path.insert(0, src_path)
 
 from core.services.url_processor import add_suffix  # noqa: E402
@@ -207,11 +207,16 @@ class ClipboardWatcher:
         except Exception as e:
             logger.error(f"Error in cleanup: {e}")
 
+    def _write_to_clipboard(self, text):
+        if sys.platform != "win32":
+            raise RuntimeError("Unsupported platform")
+
     def run(self):
         """Run the clipboard watcher"""
 
         try:
             logger.info("Clipboard watcher started")
+            logger.debug(f"Detected OS: {sys.platform}")
             win32gui.PumpMessages()
             return self.restart_flag
         except Exception as e:
