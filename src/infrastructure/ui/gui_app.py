@@ -537,28 +537,138 @@ class URLClipChangerGUI:
             # Convert data to rules
             imported_rules = [(r["domains"], r["suffix"]) for r in data]
             
-            # Ask for confirmation
-            if messagebox.askyesno(
-                "Confirm Import",
-                f"Import {len(imported_rules)} rules? This will replace your current rules."
-            ):
-                # Replace rules
-                self.rules = imported_rules
+            # Get the config directory path
+            app_name = "URLClipChanger"
+            
+            if getattr(sys, "frozen", False):
+                # When running as an executable, config dir is next to the exe
+                base_dir = os.path.dirname(sys.executable)
+                config_dir = os.path.join(base_dir, "configs")
+            else:
+                # When running as a script, use appdirs or project directory
+                try:
+                    import appdirs
+                    config_dir = appdirs.user_config_dir(app_name)
+                except ImportError:
+                    # Fallback if appdirs is not available
+                    config_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                                            "..", "..", "..", "configs")
+            
+            # Ensure config directory exists
+            os.makedirs(config_dir, exist_ok=True)
+            
+            # Default target file is rules.json
+            target_file = os.path.join(config_dir, "rules.json")
+            
+            # Check if rules.json already exists
+            if os.path.exists(target_file):
+                # Create a dialog to ask the user what to do
+                import_dialog = tk.Toplevel(self.master)
+                import_dialog.title("Import Rules")
+                import_dialog.geometry("450x200")
+                import_dialog.resizable(False, False)
+                import_dialog.transient(self.master)
+                import_dialog.grab_set()
                 
-                # Update treeview
-                for item in self.tree.get_children():
-                    self.tree.delete(item)
+                # Center the dialog
+                import_dialog.geometry("+%d+%d" % (
+                    self.master.winfo_rootx() + self.master.winfo_width() // 2 - 225,
+                    self.master.winfo_rooty() + self.master.winfo_height() // 2 - 100
+                ))
                 
-                for i, (domains, suffix) in enumerate(self.rules):
-                    domains_str = ", ".join(domains)
-                    self.tree.insert("", tk.END, values=(domains_str, suffix), iid=str(i))
+                # Dialog content
+                ttk.Label(
+                    import_dialog, 
+                    text=f"The file 'rules.json' already exists and will be overwritten.\n"
+                         f"Importing will replace your current {len(self.rules)} rules with {len(imported_rules)} new rules.",
+                    wraplength=400, justify="center"
+                ).pack(pady=20)
                 
-                # Save to file
+                # User decision variable
+                user_choice = {"action": "cancel"}
+                
+                def overwrite_action():
+                    user_choice["action"] = "overwrite"
+                    import_dialog.destroy()
+                    
+                def rename_action():
+                    user_choice["action"] = "rename"
+                    import_dialog.destroy()
+                    
+                def cancel_action():
+                    user_choice["action"] = "cancel"
+                    import_dialog.destroy()
+                
+                # Buttons frame
+                btn_frame = ttk.Frame(import_dialog)
+                btn_frame.pack(side="bottom", pady=20)
+                
+                ttk.Button(
+                    btn_frame, 
+                    text="Overwrite", 
+                    command=overwrite_action
+                ).pack(side="left", padx=10)
+                
+                ttk.Button(
+                    btn_frame, 
+                    text="Save As...", 
+                    command=rename_action
+                ).pack(side="left", padx=10)
+                
+                ttk.Button(
+                    btn_frame, 
+                    text="Cancel", 
+                    command=cancel_action
+                ).pack(side="left", padx=10)
+                
+                # Wait for dialog to close
+                self.master.wait_window(import_dialog)
+                
+                # Process user choice
+                if user_choice["action"] == "cancel":
+                    return
+                elif user_choice["action"] == "rename":
+                    # Ask for new filename
+                    new_filepath = filedialog.asksaveasfilename(
+                        title="Save Rules As",
+                        defaultextension=".json",
+                        initialdir=config_dir,
+                        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+                    )
+                    
+                    if not new_filepath:
+                        return  # User canceled
+                    
+                    target_file = new_filepath
+            
+            # Now proceed with the import
+            self.rules = imported_rules
+            
+            # Update treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            
+            for i, (domains, suffix) in enumerate(self.rules):
+                domains_str = ", ".join(domains)
+                self.tree.insert("", tk.END, values=(domains_str, suffix), iid=str(i))
+            
+            # Save the rules
+            if target_file == os.path.join(config_dir, "rules.json"):
+                # If saving to the default location, use the standard save method
                 self._save_rules()
-                
-                # Update status
-                self.status_var.set(f"Imported {len(imported_rules)} rules from {os.path.basename(filepath)}")
-                logger.info(f"Imported {len(imported_rules)} rules from {filepath}")
+            else:
+                # Otherwise save to the specified file
+                rules_json = [{"domains": domains, "suffix": suffix} for domains, suffix in self.rules]
+                with open(target_file, "w", encoding="utf-8") as f:
+                    json.dump(rules_json, f, indent=4)
+                    
+                # Also update the standard rules file to reflect current state
+                self._save_rules()
+            
+            # Update status
+            target_filename = os.path.basename(target_file)
+            self.status_var.set(f"Imported {len(imported_rules)} rules to {target_filename}")
+            logger.info(f"Imported {len(imported_rules)} rules from {filepath} to {target_file}")
         except Exception as e:
             logger.error(f"Failed to import rules: {e}")
             messagebox.showerror("Error", f"Failed to import rules: {e}")

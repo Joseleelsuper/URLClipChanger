@@ -104,7 +104,7 @@ def load_rules() -> List[Rule]:
 
     # Create default rules file if not found
     if not config_file_path:
-        # Try to create and save a default empty rules file
+        # Try to create and save a default sample rules file
         try:
             # Use the first path from the search paths as the default location
             default_path = search_paths[0]
@@ -113,11 +113,22 @@ def load_rules() -> List[Rule]:
             if not default_path.parent.exists():
                 default_path.parent.mkdir(parents=True, exist_ok=True)
                 
-            # Create empty rules file
+            # Create default rules file with example content
+            default_rules = [
+                {
+                    "domains": [
+                        "example.com",
+                        "example.es"
+                    ],
+                    "suffix": "?ref=URLClipChanger"
+                }
+            ]
+            
+            # Write the default rules
             with open(default_path, "w", encoding="utf-8") as f:
-                json.dump([], f, indent=4)
+                json.dump(default_rules, f, indent=4)
                 
-            logger.info(f"Created default empty rules file at: {default_path}")
+            logger.info(f"Created default rules file with example content at: {default_path}")
             config_file_path = default_path
         except Exception as e:
             logger.error(f"Failed to create default rules file: {e}")
