@@ -49,28 +49,71 @@ class QueryStrategy(SuffixStrategy):
         return urlunparse(parsed_url._replace(query=new_q))
 
 
+class AmazonAffiliateStrategy(SuffixStrategy):
+    def apply(self, parsed_url: ParseResult, suffix: str, original_url: str) -> str:
+        """Apply Amazon affiliate tag to URL.
+        
+        Handles both short (amzn.eu/d/...) and long Amazon URLs by adding the tag parameter.
+        """
+        # Extract the tag value from suffix (format: "?tag=affiliate-id")
+        tag_value = suffix.lstrip("?").replace("tag=", "")
+        
+        # Parse existing query parameters
+        qs: Dict[str, List[str]] = parse_qs(parsed_url.query)
+        
+        # Add or update the tag parameter
+        qs['tag'] = [tag_value]
+        
+        # Rebuild the query string
+        new_q = urlencode(qs, doseq=True)
+        
+        return urlunparse(parsed_url._replace(query=new_q))
+
+
 class SimpleSuffixStrategy(SuffixStrategy):
     def apply(self, parsed_url: ParseResult, suffix: str, original_url: str) -> str:
         return original_url.rstrip("/") + suffix
 
 
-def _get_strategy(suffix: str) -> SuffixStrategy:
-    """Determine the appropriate strategy based on the suffix format.
+def _is_amazon_url(url: str) -> bool:
+    """Check if the URL is an Amazon domain."""
+    amazon_domains = [
+        'amazon.com', 'amazon.es', 'amazon.co.uk', 'amazon.de', 'amazon.fr',
+        'amazon.it', 'amazon.ca', 'amazon.com.au', 'amazon.co.jp', 'amazon.in',
+        'amzn.to', 'amzn.eu', 'a.co'
+    ]
+    parsed = urlparse(url)
+    domain = parsed.netloc.lower()
+
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    
+    return any(domain == amazon_domain or domain.endswith('.' + amazon_domain) 
+              for amazon_domain in amazon_domains)
+
+
+def _get_strategy(suffix: str, url: str = "") -> SuffixStrategy:
+    """Determine the appropriate strategy based on the suffix format and URL.
 
     Args:
         suffix (str): The suffix to analyze.
+        url (str): The original URL to check for special handling.
 
     Returns:
         SuffixStrategy: The appropriate strategy instance.
     """
+    # Check for Amazon affiliate links
+    if _is_amazon_url(url):
+        return AmazonAffiliateStrategy()
+    
     if suffix.startswith(("http://", "https://")):
         return AbsoluteUrlStrategy()
     elif suffix.startswith("/"):
         return PathStrategy()
     elif suffix.startswith("?"):
         return QueryStrategy()
-    else:
-        return SimpleSuffixStrategy()
+    
+    return SimpleSuffixStrategy()
 
 
 def add_suffix(url: str, rules: List[Rule]) -> str:
@@ -89,7 +132,7 @@ def add_suffix(url: str, rules: List[Rule]) -> str:
     for patterns, suffix in rules:
         if any(pattern in url for pattern in patterns):
             parsed_url = urlparse(url)
-            strategy = _get_strategy(suffix)
+            strategy = _get_strategy(suffix, url)
             return strategy.apply(parsed_url, suffix, url)
 
     return url
